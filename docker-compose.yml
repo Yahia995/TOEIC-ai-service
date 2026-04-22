@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quiz_user
+      POSTGRES_PASSWORD: quiz_pass
+      POSTGRES_DB: quiz_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quiz_user -d quiz_ai"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://quiz_user:quiz_pass@db:5432/quiz_ai
+      API_KEY: dev-local-key
+      WEIGHT_GRADE: "0.60"
+      WEIGHT_TIME: "0.25"
+      WEIGHT_VARIANCE: "0.15"
+      THRESHOLD_EASY: "0.35"
+      THRESHOLD_MEDIUM: "0.60"
+      BOOST_MIN_SCORE: "85.0"
+      BOOST_MAX_TIME: "0.85"
+      TOP_N_RECOMMENDATIONS: "5"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  postgres_data:

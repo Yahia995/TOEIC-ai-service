@@ -1,0 +1,64 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_run:
+    workflows: ["Build & Push to GHCR"]
+    types: [completed]
+    branches: [main]
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  AZURE_CONTAINER_APP_NAME: toeic-ai-service-app
+  AZURE_RESOURCE_GROUP: toeic-ai-service-rg
+  AZURE_ENVIRONMENT_NAME: toieic-ai-service-env
+
+jobs:
+  deploy:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: ${{ env.AZURE_CONTAINER_APP_NAME }}
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.IMAGE_NAME }}:latest
+          registryUrl: ghcr.io
+          registryUsername: ${{ github.actor }}
+          registryPassword: ${{ secrets.GHCR_PAT }}
+
+      - name: Set environment variables (secrets)
+        run: |
+          az containerapp update \
+            --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --set-env-vars \
+              "DATABASE_URL=secretref:database-url" \
+              "API_KEY=secretref:api-key" \
+              "WEIGHT_GRADE=0.60" \
+              "WEIGHT_TIME=0.25" \
+              "WEIGHT_VARIANCE=0.15" \
+              "THRESHOLD_EASY=0.35" \
+              "THRESHOLD_MEDIUM=0.60" \
+              "BOOST_MIN_SCORE=85.0" \
+              "BOOST_MAX_TIME=0.85" \
+              "TOP_N_RECOMMENDATIONS=5"
+
+      - name: Print service URL
+        run: |
+          URL=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Deployed to: https://$URL"
