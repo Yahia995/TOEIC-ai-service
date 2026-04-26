@@ -25,6 +25,8 @@ class QuizCatalog(Base):
     __tablename__ = "quiz_catalog"
 
     quiz_id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=True)
+    question_text = Column(Text, nullable=True)
     d_score = Column(Float, nullable=True)
     difficulty_group = Column(String, nullable=True)
     quiz_type = Column(String, nullable=True)

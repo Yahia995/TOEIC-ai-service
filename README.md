@@ -44,7 +44,7 @@ source venv/bin/activate  # Windows : venv\Scripts\activate
 pip install -r requirements.txt
 
 # 4. Configurer l'environnement
-touch .env
+cp .env.example .env
 # Éditer .env avec vos valeurs (DATABASE_URL, API_KEY)
 ```
 
