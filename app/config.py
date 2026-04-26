@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """
 
     # Base de données
-    database_url: str = "sqlite:///./quiz_ai.db"
+    database_url: str = "sqlite:///./toeic_ai_service.db"
  
     # Sécurité
     api_key: str = "dev-key"
@@ -44,4 +44,5 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
 
+# Instance unique utilisée dans toute l'application
 settings = Settings()
